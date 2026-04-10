@@ -14,7 +14,7 @@ export default function AboutPage() {
   return (
     <>
       <PageHero
-        imageSrc="https://images.unsplash.com/photo-fr_bTrfRl74?w=1400&q=85"
+        imageSrc="https://images.unsplash.com/photo-WthHx_W7Ya4?w=1400&q=85"
         imageAlt="Ancient Silk Road landscape"
         eyebrow="Our Story"
         heading="Built on Two Decades of Deep Travel"
@@ -53,7 +53,7 @@ export default function AboutPage() {
             <div>
               <div style={{ position: 'relative', aspectRatio: '4/5', overflow: 'hidden', marginBottom: '1rem' }}>
                 <Image
-                  src="https://images.unsplash.com/photo-hvLu3ABC1n0?w=800&q=80"
+                  src="https://images.unsplash.com/photo-v9ZBig1I_j4?w=800&q=80"
                   alt="Samarkand's Registan Square"
                   fill
                   sizes="(max-width: 768px) 100vw, 50vw"

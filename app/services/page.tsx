@@ -50,7 +50,7 @@ export default function ServicesPage() {
   return (
     <>
       <PageHero
-        imageSrc="https://images.unsplash.com/photo-hvLu3ABC1n0?w=1400&q=85"
+        imageSrc="https://images.unsplash.com/photo-v9ZBig1I_j4?w=1400&q=85"
         imageAlt="Silk Road architecture"
         eyebrow="What We Do"
         heading="Full-Spectrum Destination Management"

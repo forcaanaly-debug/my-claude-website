@@ -11,7 +11,7 @@ export default function ContactPage() {
   return (
     <>
       <PageHero
-        imageSrc="https://images.unsplash.com/photo-TLKCx6mVIHo?w=1400&q=85"
+        imageSrc="https://images.unsplash.com/photo-lc5iIZ7UO1w?w=1400&q=85"
         imageAlt="Silk Road landscape"
         eyebrow="Get in Touch"
         heading="Begin Your Journey Here"

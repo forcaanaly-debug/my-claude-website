@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 const images = [
   {
     id: '1',
-    src: 'https://images.unsplash.com/photo-hvLu3ABC1n0?w=1200&q=85',
+    src: 'https://images.unsplash.com/photo-v9ZBig1I_j4?w=1200&q=85',
     alt: 'Registan Square at dusk, Samarkand',
     destination: 'Uzbekistan',
   },
@@ -23,25 +23,25 @@ const images = [
   },
   {
     id: '3',
-    src: 'https://images.unsplash.com/photo-TLKCx6mVIHo?w=1200&q=85',
+    src: 'https://images.unsplash.com/photo-lc5iIZ7UO1w?w=1200&q=85',
     alt: 'Snow-dusted mountains of the Hindu Kush, Afghanistan',
     destination: 'Afghanistan',
   },
   {
     id: '4',
-    src: 'https://images.unsplash.com/photo-1548013146-72479768bada?w=1200&q=85',
+    src: 'https://images.unsplash.com/photo-SGZ5DkDOoRo?w=1200&q=85',
     alt: 'Singing Sand Dunes at golden hour, Dunhuang',
     destination: 'China',
   },
   {
     id: '5',
-    src: 'https://images.unsplash.com/photo-X8KiHDdfkQo?w=1200&q=85',
+    src: 'https://images.unsplash.com/photo-U31zCVjmDA8?w=1200&q=85',
     alt: 'Attabad Lake — turquoise waters in the Karakoram gorge',
     destination: 'Pakistan',
   },
   {
     id: '6',
-    src: 'https://images.unsplash.com/photo-Z1EtUnhaLsY?w=1200&q=85',
+    src: 'https://images.unsplash.com/photo-ih-afcs5oC4?w=1200&q=85',
     alt: 'Turquoise-tiled domes of Khiva, Uzbekistan',
     destination: 'Uzbekistan',
   },
@@ -53,13 +53,13 @@ const images = [
   },
   {
     id: '8',
-    src: 'https://images.unsplash.com/photo-fr_bTrfRl74?w=1200&q=85',
+    src: 'https://images.unsplash.com/photo-WthHx_W7Ya4?w=1200&q=85',
     alt: 'The Kalon Minaret, Bukhara — a beacon since the 12th century',
     destination: 'Uzbekistan',
   },
   {
     id: '9',
-    src: 'https://images.unsplash.com/photo-PLGKg5hYoTE?w=1200&q=85',
+    src: 'https://images.unsplash.com/photo-E2jsEq5urM4?w=1200&q=85',
     alt: 'A doorway in the old city of Kashgar, Silk Road China',
     destination: 'China',
   },
@@ -71,7 +71,7 @@ const images = [
   },
   {
     id: '11',
-    src: 'https://images.unsplash.com/photo-PitvmalIFOc?w=1200&q=85',
+    src: 'https://images.unsplash.com/photo-LJh9ayGO8t8?w=1200&q=85',
     alt: 'Winter snows on the mountains above Hunza',
     destination: 'Pakistan',
   },
@@ -89,13 +89,13 @@ const images = [
   },
   {
     id: '14',
-    src: 'https://images.unsplash.com/photo-bvDVCDiEs18?w=1200&q=85',
+    src: 'https://images.unsplash.com/photo-VgNEZJ3JxvY?w=1200&q=85',
     alt: 'A river runs between mountain walls on the Karakoram Highway',
     destination: 'Pakistan',
   },
   {
     id: '15',
-    src: 'https://images.unsplash.com/photo-xDapKOREcJU?w=1200&q=85',
+    src: 'https://images.unsplash.com/photo-GyALQFQ9cp4?w=1200&q=85',
     alt: 'Surveying the peaks above Hunza Valley',
     destination: 'Pakistan',
   },
