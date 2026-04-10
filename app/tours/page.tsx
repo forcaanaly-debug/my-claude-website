@@ -17,7 +17,7 @@ export default function ToursPage() {
   return (
     <>
       <PageHero
-        imageSrc="https://images.unsplash.com/photo-ih-afcs5oC4?w=1400&q=85"
+        imageSrc="https://images.unsplash.com/photo-1662492727591-b8441648d861?w=1400&q=85"
         imageAlt="Central Asian landscape"
         eyebrow="Our Programmes"
         heading="Signature Expeditions"

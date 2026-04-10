@@ -13,7 +13,7 @@ export default function DestinationsPage() {
   return (
     <>
       <PageHero
-        imageSrc="https://images.unsplash.com/photo-AjFiqo-PsfE?w=1400&q=85"
+        imageSrc="https://images.unsplash.com/photo-1684230715200-40f32e068bf2?w=1400&q=85"
         imageAlt="Mountains of the Karakoram"
         eyebrow="Where We Go"
         heading="Four Extraordinary Destinations"

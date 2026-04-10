@@ -20,7 +20,7 @@ export default function HomePage() {
     <>
       {/* HERO */}
       <Hero
-        imageSrc="https://images.unsplash.com/photo-v9ZBig1I_j4?w=1600&q=85"
+        imageSrc="https://images.unsplash.com/photo-1653023102302-247f5f0fbdd1?w=1600&q=85"
         imageAlt="Registan Square, Samarkand at dusk"
         eyebrow="Destination Management Company"
         heading="Where the Ancient Roads Still Run"
