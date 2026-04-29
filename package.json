@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "TINA_PUBLIC_IS_LOCAL=true tinacms dev -c \"next dev\"",
-    "build": "TINA_PUBLIC_IS_LOCAL=true tinacms build --local --skip-cloud-checks && next build",
+    "build": "dotenv -e .env.local -- tinacms build --skip-cloud-checks && next build",
     "start": "next start",
     "lint": "eslint"
   },
@@ -21,6 +21,7 @@
     "@types/node": "^20.19.39",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
     "tailwindcss": "^4",

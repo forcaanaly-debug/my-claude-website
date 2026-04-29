@@ -1,0 +1,34 @@
+fragment GlobalParts on Global {
+  __typename
+  theme {
+    __typename
+    charcoal
+    stone
+    sand
+    offwhite
+    bronze
+    bronzePale
+  }
+}
+
+fragment PageParts on Page {
+  __typename
+  hero {
+    __typename
+    imageSrc
+    imageAlt
+    eyebrow
+    heading
+    subheading
+  }
+}
+
+fragment GalleryParts on Gallery {
+  __typename
+  images {
+    __typename
+    src
+    alt
+    destination
+  }
+}
