@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import PageHero from '@/components/sections/PageHero'
 import ContactForm from '@/components/contact/ContactForm'
+import { getContent } from '@/lib/content'
 
 export const metadata: Metadata = {
   title: 'Contact',
@@ -8,14 +9,15 @@ export const metadata: Metadata = {
 }
 
 export default function ContactPage() {
+  const hero = getContent().pages.contact.hero
   return (
     <>
       <PageHero
-        imageSrc="https://images.unsplash.com/photo-1643661100639-de5cdf7bcb80?w=1400&q=85"
-        imageAlt="Silk Road landscape"
-        eyebrow="Get in Touch"
-        heading="Begin Your Journey Here"
-        subheading="Every great expedition starts with a conversation. Tell us where you want to go."
+        imageSrc={hero.imageSrc}
+        imageAlt={hero.imageAlt}
+        eyebrow={hero.eyebrow}
+        heading={hero.heading}
+        subheading={hero.subheading ?? ''}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Contact', href: '/contact' }]}
       />
 

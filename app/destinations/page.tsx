@@ -3,6 +3,7 @@ import PageHero from '@/components/sections/PageHero'
 import DestinationCard from '@/components/cards/DestinationCard'
 import CallToAction from '@/components/sections/CallToAction'
 import { destinations } from '@/lib/data/destinations'
+import { getContent } from '@/lib/content'
 
 export const metadata: Metadata = {
   title: 'Destinations',
@@ -10,14 +11,15 @@ export const metadata: Metadata = {
 }
 
 export default function DestinationsPage() {
+  const hero = getContent().pages.destinations.hero
   return (
     <>
       <PageHero
-        imageSrc="https://images.unsplash.com/photo-1684230715200-40f32e068bf2?w=1400&q=85"
-        imageAlt="Mountains of the Karakoram"
-        eyebrow="Where We Go"
-        heading="Four Extraordinary Destinations"
-        subheading="From the Timurid cities of Uzbekistan to the Karakoram peaks of Pakistan, the Afghan Pamirs, and the cave temples of Dunhuang."
+        imageSrc={hero.imageSrc}
+        imageAlt={hero.imageAlt}
+        eyebrow={hero.eyebrow}
+        heading={hero.heading}
+        subheading={hero.subheading ?? ''}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Destinations', href: '/destinations' }]}
       />
 

@@ -8,6 +8,7 @@ import CallToAction from '@/components/sections/CallToAction'
 import { destinations } from '@/lib/data/destinations'
 import { getFeaturedTours } from '@/lib/data/tours'
 import testimonials from '@/lib/data/testimonials'
+import { getContent } from '@/lib/content'
 
 export const metadata: Metadata = {
   title: 'Silk Route Expeditions — Curated Luxury Tours to Central Asia',
@@ -15,16 +16,18 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   const featuredTours = getFeaturedTours()
+  const { pages } = getContent()
+  const hero = pages.home.hero
 
   return (
     <>
       {/* HERO */}
       <Hero
-        imageSrc="https://images.unsplash.com/photo-1653023102302-247f5f0fbdd1?w=1600&q=85"
-        imageAlt="Registan Square, Samarkand at dusk"
-        eyebrow="Destination Management Company"
-        heading="Where the Ancient Roads Still Run"
-        subheading="Private expeditions to the crossroads of civilisations — Uzbekistan, Pakistan, Afghanistan, and China's Silk Road corridor."
+        imageSrc={hero.imageSrc}
+        imageAlt={hero.imageAlt}
+        eyebrow={hero.eyebrow}
+        heading={hero.heading}
+        subheading={hero.subheading ?? ''}
         ctaPrimary={{ text: 'Explore Destinations', href: '/destinations' }}
         ctaSecondary={{ text: 'View Tours', href: '/tours' }}
       />

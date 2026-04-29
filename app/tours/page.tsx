@@ -3,6 +3,7 @@ import PageHero from '@/components/sections/PageHero'
 import TourCard from '@/components/cards/TourCard'
 import CallToAction from '@/components/sections/CallToAction'
 import { tours } from '@/lib/data/tours'
+import { getContent } from '@/lib/content'
 
 export const metadata: Metadata = {
   title: 'Tours & Expeditions',
@@ -13,15 +14,16 @@ export default function ToursPage() {
   const cultural = tours.filter(t => t.category === 'cultural')
   const expedition = tours.filter(t => t.category === 'expedition')
   const adventure = tours.filter(t => t.category === 'adventure')
+  const hero = getContent().pages.tours.hero
 
   return (
     <>
       <PageHero
-        imageSrc="https://images.unsplash.com/photo-1662492727591-b8441648d861?w=1400&q=85"
-        imageAlt="Central Asian landscape"
-        eyebrow="Our Programmes"
-        heading="Signature Expeditions"
-        subheading="Six carefully designed journeys across the ancient Silk Road. Each can be modified, extended, or combined to match your goals."
+        imageSrc={hero.imageSrc}
+        imageAlt={hero.imageAlt}
+        eyebrow={hero.eyebrow}
+        heading={hero.heading}
+        subheading={hero.subheading ?? ''}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Tours', href: '/tours' }]}
       />
 

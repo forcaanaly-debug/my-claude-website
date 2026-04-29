@@ -4,6 +4,7 @@ import Link from 'next/link'
 import PageHero from '@/components/sections/PageHero'
 import CallToAction from '@/components/sections/CallToAction'
 import team from '@/lib/data/team'
+import { getContent } from '@/lib/content'
 
 export const metadata: Metadata = {
   title: 'About Us',
@@ -11,13 +12,14 @@ export const metadata: Metadata = {
 }
 
 export default function AboutPage() {
+  const hero = getContent().pages.about.hero
   return (
     <>
       <PageHero
-        imageSrc="https://images.unsplash.com/photo-1653152232504-3e1a9891dc46?w=1400&q=85"
-        imageAlt="Ancient Silk Road landscape"
-        eyebrow="Our Story"
-        heading="Built on Two Decades of Deep Travel"
+        imageSrc={hero.imageSrc}
+        imageAlt={hero.imageAlt}
+        eyebrow={hero.eyebrow}
+        heading={hero.heading}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'About', href: '/about' }]}
       />
 

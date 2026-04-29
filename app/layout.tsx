@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { getContent } from "@/lib/content";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-display",
@@ -39,11 +40,26 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { theme } = getContent();
+  const themeVars = `
+    :root {
+      --color-charcoal: ${theme.charcoal};
+      --color-stone: ${theme.stone};
+      --color-sand: ${theme.sand};
+      --color-offwhite: ${theme.offwhite};
+      --color-bronze: ${theme.bronze};
+      --color-bronze-pale: ${theme.bronzePale};
+    }
+  `;
+
   return (
     <html
       lang="en"
       className={`${cormorant.variable} ${plusJakarta.variable}`}
     >
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: themeVars }} />
+      </head>
       <body suppressHydrationWarning style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
         <main style={{ flex: 1 }}>{children}</main>

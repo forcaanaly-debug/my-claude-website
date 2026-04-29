@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import PageHero from '@/components/sections/PageHero'
 import GalleryGrid from '@/components/gallery/GalleryGrid'
 import CallToAction from '@/components/sections/CallToAction'
+import { getContent } from '@/lib/content'
 
 export const metadata: Metadata = {
   title: 'Gallery',
@@ -108,14 +109,15 @@ const images = [
 ]
 
 export default function GalleryPage() {
+  const hero = getContent().pages.gallery.hero
   return (
     <>
       <PageHero
-        imageSrc="https://images.unsplash.com/photo-1636997209370-e2042d01d5a5?w=1400&q=85"
-        imageAlt="Hunza Valley at sunset, Pakistan"
-        eyebrow="The Places We Go"
-        heading="A Portrait of the Silk Road"
-        subheading="Images from our journeys — ancient cities, mountain corridors, and the landscapes between."
+        imageSrc={hero.imageSrc}
+        imageAlt={hero.imageAlt}
+        eyebrow={hero.eyebrow}
+        heading={hero.heading}
+        subheading={hero.subheading ?? ''}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Gallery', href: '/gallery' }]}
       />
 

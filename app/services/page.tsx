@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import PageHero from '@/components/sections/PageHero'
 import CallToAction from '@/components/sections/CallToAction'
+import { getContent } from '@/lib/content'
 
 export const metadata: Metadata = {
   title: 'Services',
@@ -47,14 +48,15 @@ const services = [
 ]
 
 export default function ServicesPage() {
+  const hero = getContent().pages.services.hero
   return (
     <>
       <PageHero
-        imageSrc="https://images.unsplash.com/photo-1653023102302-247f5f0fbdd1?w=1400&q=85"
-        imageAlt="Silk Road architecture"
-        eyebrow="What We Do"
-        heading="Full-Spectrum Destination Management"
-        subheading="From the first enquiry to the final transfer home, we manage every element of your journey."
+        imageSrc={hero.imageSrc}
+        imageAlt={hero.imageAlt}
+        eyebrow={hero.eyebrow}
+        heading={hero.heading}
+        subheading={hero.subheading ?? ''}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Services', href: '/services' }]}
       />
 
