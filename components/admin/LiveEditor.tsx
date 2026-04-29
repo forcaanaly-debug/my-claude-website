@@ -1,518 +1,409 @@
 'use client'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 
-interface ContextMenu { x: number; y: number; el: HTMLElement }
-interface AIModal { field: string; fieldType: string; currentValue: string }
-interface ImageModal { field: string; currentSrc: string }
-interface ThemePanel { open: boolean }
-type Colors = Record<string, string>
+type Override = { selector: string; type: 'text' | 'src'; value: string }
+type Overrides = Record<string, Override[]>
 
-function getCookie(name: string) {
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
   return document.cookie.split('; ').find(r => r.startsWith(name + '='))?.split('=')[1] ?? null
 }
 
-function deepSet(obj: Record<string, unknown>, path: string, value: string) {
-  const parts = path.split('.')
+function getSelectorPath(el: Element): string {
+  const parts: string[] = []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let cur: any = obj
-  for (let i = 0; i < parts.length - 1; i++) {
-    if (!cur[parts[i]]) cur[parts[i]] = {}
-    cur = cur[parts[i]]
+  let node: any = el
+  while (node && node !== document.body) {
+    const tag = (node as Element).tagName.toLowerCase()
+    const parentEl: Element | null = (node as Element).parentElement
+    if (!parentEl) break
+    const same = Array.from(parentEl.children).filter(c => c.tagName === (node as Element).tagName)
+    const idx = same.indexOf(node as Element) + 1
+    parts.unshift(same.length > 1 ? `${tag}:nth-of-type(${idx})` : tag)
+    node = parentEl
   }
-  cur[parts[parts.length - 1]] = value
+  return parts.join(' > ')
+}
+
+// Apply saved overrides to the DOM (runs for all visitors)
+async function applyPageOverrides() {
+  try {
+    const res = await fetch('/api/overrides')
+    if (!res.ok) return
+    const all: Overrides = await res.json()
+    const list = all[window.location.pathname] ?? []
+    list.forEach(({ selector, type, value }) => {
+      try {
+        const el = document.querySelector(selector) as HTMLElement | null
+        if (!el) return
+        if (type === 'text') {
+          el.innerHTML = value
+        } else if (type === 'src') {
+          const img = el as HTMLImageElement
+          img.src = value
+          img.removeAttribute('srcset')
+        }
+      } catch { /* selector mismatch — ignore */ }
+    })
+  } catch { /* network error — ignore */ }
 }
 
 export default function LiveEditor() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [editMode, setEditMode] = useState(false)
-  const [ctxMenu, setCtxMenu] = useState<ContextMenu | null>(null)
-  const [aiModal, setAiModal] = useState<AIModal | null>(null)
-  const [imgModal, setImgModal] = useState<ImageModal | null>(null)
-  const [themePanel, setThemePanel] = useState<ThemePanel>({ open: false })
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; el: HTMLElement; kind: 'text' | 'image' } | null>(null)
+  const [imgModal, setImgModal] = useState<{ el: HTMLElement; src: string } | null>(null)
+  const [imgUrl, setImgUrl] = useState('')
+  const [aiModal, setAiModal] = useState<{ el: HTMLElement; value: string; kind: 'text' | 'image' } | null>(null)
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiProvider, setAiProvider] = useState<'claude' | 'gemini'>('claude')
   const [aiLoading, setAiLoading] = useState(false)
-  const [aiSuggestion, setAiSuggestion] = useState('')
-  const [imgUrl, setImgUrl] = useState('')
-  const [colors, setColors] = useState<Colors>({})
+  const [aiResult, setAiResult] = useState('')
+  const [showTheme, setShowTheme] = useState(false)
+  const [colors, setColors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
-  const [savedMsg, setSavedMsg] = useState('')
-  const pendingRef = useRef<Record<string, unknown>>({})
+  const [msg, setMsg] = useState('')
 
-  useEffect(() => {
-    if (getCookie('admin_ui') === '1') setIsAdmin(true)
-  }, [])
+  // Apply overrides on mount for all visitors
+  useEffect(() => { applyPageOverrides() }, [])
 
-  // Inject edit-mode styles
+  // Detect admin
+  useEffect(() => { if (getCookie('admin_ui') === '1') setIsAdmin(true) }, [])
+
+  // Edit-mode highlight CSS
   useEffect(() => {
-    const style = document.createElement('style')
-    style.id = '__live-edit-style'
-    style.textContent = `
-      body.edit-mode [data-field] {
-        outline: 2px dashed rgba(139,105,20,0.5);
-        outline-offset: 2px;
-        cursor: pointer;
-        transition: outline 0.15s;
+    const id = '__le-css'
+    let s = document.getElementById(id) as HTMLStyleElement | null
+    if (!s) { s = document.createElement('style'); s.id = id; document.head.appendChild(s) }
+    s.textContent = editMode ? `
+      body.le-active :is(h1,h2,h3,h4,h5,h6,p,li,span,a,td,th,figcaption,caption,blockquote):not(#__le *):not(nav *) {
+        outline: 1px dashed rgba(139,105,20,.4) !important;
+        cursor: text !important;
+        transition: outline .1s, background .1s;
       }
-      body.edit-mode [data-field]:hover {
-        outline: 2px solid #c9a84c;
-        outline-offset: 3px;
+      body.le-active :is(h1,h2,h3,h4,h5,h6,p,li,span,a,td,th,figcaption,caption,blockquote):not(#__le *):not(nav *):hover {
+        outline: 1px solid #c9a84c !important;
+        background: rgba(139,105,20,.06) !important;
       }
-      body.edit-mode [data-field-type="image"]:hover::after {
-        content: "🖼  Click to replace image";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%,-50%);
-        background: rgba(0,0,0,0.75);
-        color: #fff;
-        padding: 0.5rem 1rem;
-        font-size: 0.8rem;
-        font-family: system-ui, sans-serif;
-        pointer-events: none;
-        z-index: 9999;
-        white-space: nowrap;
+      body.le-active img:not(#__le *) {
+        outline: 2px dashed rgba(139,105,20,.55) !important;
+        cursor: pointer !important;
       }
-      body.edit-mode [data-field-type="image"] { position: relative; }
-    `
-    document.head.appendChild(style)
-    return () => { document.getElementById('__live-edit-style')?.remove() }
-  }, [])
-
-  // Load theme colors
-  useEffect(() => {
-    if (!isAdmin) return
-    fetch('/api/admin/content').then(r => r.json()).then(data => {
-      if (data?.theme) setColors(data.theme)
-      pendingRef.current = data ?? {}
-    })
-  }, [isAdmin])
-
-  // Toggle edit mode
-  useEffect(() => {
-    if (editMode) document.body.classList.add('edit-mode')
-    else document.body.classList.remove('edit-mode')
+      body.le-active img:not(#__le *):hover {
+        outline: 2px solid #c9a84c !important;
+        opacity: .88;
+      }
+      [contenteditable=true]:not(#__le *) {
+        outline: 2px solid #c9a84c !important;
+        background: rgba(139,105,20,.09) !important;
+        min-width: 2px;
+      }
+    ` : ''
+    if (editMode) document.body.classList.add('le-active')
+    else document.body.classList.remove('le-active')
   }, [editMode])
 
-  // Context menu handler
-  const handleContextMenu = useCallback((e: MouseEvent) => {
+  // Click + right-click handlers
+  useEffect(() => {
     if (!editMode) return
-    const el = (e.target as HTMLElement).closest('[data-field]') as HTMLElement | null
-    if (!el) return
-    e.preventDefault()
-    setCtxMenu({ x: e.clientX, y: e.clientY, el })
-  }, [editMode])
 
-  // Click on field element (for images)
-  const handleClick = useCallback((e: MouseEvent) => {
-    if (!editMode) return
-    const el = (e.target as HTMLElement).closest('[data-field]') as HTMLElement | null
-    if (!el) return
-    if (el.dataset.fieldType === 'image') {
+    const onClick = (e: MouseEvent) => {
+      const t = e.target as HTMLElement
+      if (t.closest('#__le')) return
+
+      // Image click → replace modal
+      const imgEl = (t.tagName === 'IMG' ? t : t.closest('img')) as HTMLImageElement | null
+      if (imgEl) {
+        e.preventDefault(); e.stopPropagation()
+        setImgModal({ el: imgEl, src: imgEl.currentSrc || imgEl.src })
+        setImgUrl(imgEl.currentSrc || imgEl.src)
+        return
+      }
+
+      // Text click → inline edit (prefer block-level parent)
+      const textEl = (
+        t.closest('h1,h2,h3,h4,h5,h6,p,li,td,th,blockquote,figcaption') ??
+        t.closest('span,a')
+      ) as HTMLElement | null
+      if (!textEl || textEl.closest('nav') || textEl.closest('#__le')) return
+      if (textEl.contentEditable === 'true') return
+
+      e.preventDefault(); e.stopPropagation()
+      const orig = textEl.innerHTML
+      textEl.contentEditable = 'true'
+      textEl.focus()
+      // Move caret to end
+      const sel = window.getSelection()
+      if (sel) { const r = document.createRange(); r.selectNodeContents(textEl); r.collapse(false); sel.removeAllRanges(); sel.addRange(r) }
+
+      const commit = () => {
+        textEl.contentEditable = 'false'
+        if (textEl.innerHTML !== orig) saveOverride(textEl, 'text', textEl.innerHTML)
+        textEl.removeEventListener('blur', commit)
+        textEl.removeEventListener('keydown', onKey)
+      }
+      const onKey = (ke: KeyboardEvent) => {
+        if (ke.key === 'Escape') { textEl.innerHTML = orig; textEl.contentEditable = 'false'; textEl.removeEventListener('blur', commit); textEl.removeEventListener('keydown', onKey) }
+        if (ke.key === 'Enter' && !ke.shiftKey && textEl.tagName !== 'LI') { ke.preventDefault(); textEl.blur() }
+      }
+      textEl.addEventListener('blur', commit)
+      textEl.addEventListener('keydown', onKey)
+    }
+
+    const onCtx = (e: MouseEvent) => {
+      const t = e.target as HTMLElement
+      if (t.closest('#__le')) return
+      const imgEl = (t.tagName === 'IMG' ? t : t.closest('img')) as HTMLElement | null
+      const textEl = (t.closest('h1,h2,h3,h4,h5,h6,p,li,span,a,button,td,th') as HTMLElement | null)
+      const el = imgEl ?? textEl
+      if (!el || el.closest('nav') || el.closest('#__le')) return
       e.preventDefault()
-      setImgUrl(el.dataset.fieldValue ?? '')
-      setImgModal({ field: el.dataset.field!, currentSrc: el.dataset.fieldValue ?? '' })
-      setCtxMenu(null)
+      setCtxMenu({ x: e.clientX, y: e.clientY, el, kind: imgEl ? 'image' : 'text' })
+    }
+
+    document.addEventListener('click', onClick, true)
+    document.addEventListener('contextmenu', onCtx)
+    return () => {
+      document.removeEventListener('click', onClick, true)
+      document.removeEventListener('contextmenu', onCtx)
     }
   }, [editMode])
 
-  const closeAll = useCallback(() => setCtxMenu(null), [])
-
+  // Close ctx menu on outside click
   useEffect(() => {
-    document.addEventListener('contextmenu', handleContextMenu)
-    document.addEventListener('click', handleClick)
-    window.addEventListener('click', closeAll)
-    return () => {
-      document.removeEventListener('contextmenu', handleContextMenu)
-      document.removeEventListener('click', handleClick)
-      window.removeEventListener('click', closeAll)
-    }
-  }, [handleContextMenu, handleClick, closeAll])
+    if (!ctxMenu) return
+    const close = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest('#__le')) setCtxMenu(null) }
+    setTimeout(() => document.addEventListener('click', close, { once: true }), 50)
+  }, [ctxMenu])
 
-  // --- Save helpers ---
-  async function saveField(field: string, value: string) {
-    const content = pendingRef.current as Record<string, unknown>
-    deepSet(content, field, value)
-    pendingRef.current = content
-    await fetch('/api/admin/content', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(content),
-    })
-    // Update the live DOM element
-    document.querySelectorAll(`[data-field="${field}"]`).forEach(el => {
-      (el as HTMLElement).dataset.fieldValue = value
-      if ((el as HTMLElement).dataset.fieldType === 'text') {
-        el.textContent = value
-      } else if ((el as HTMLElement).dataset.fieldType === 'image') {
-        const img = el.querySelector('img')
-        if (img) img.src = value
-      }
-    })
+  async function saveOverride(el: HTMLElement, type: 'text' | 'src', value: string) {
+    const selector = getSelectorPath(el)
+    try {
+      await fetch('/api/overrides', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pathname: window.location.pathname, selector, type, value }),
+      })
+    } catch { /* save failed silently */ }
   }
 
-  async function saveAll() {
-    setSaving(true)
-    await fetch('/api/admin/content', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(pendingRef.current),
-    })
-    setSaving(false)
-    setSavedMsg('Saved!')
-    setTimeout(() => setSavedMsg(''), 2000)
+  async function applyImage() {
+    if (!imgModal || !imgUrl.trim()) return
+    const img = imgModal.el as HTMLImageElement
+    img.src = imgUrl
+    img.removeAttribute('srcset')
+    await saveOverride(img, 'src', imgUrl)
+    showMsg('Image saved')
+    setImgModal(null); setImgUrl('')
   }
 
-  // --- Direct inline text edit ---
-  function openInlineEdit(el: HTMLElement) {
-    if (el.dataset.fieldType !== 'text') return
-    el.contentEditable = 'true'
-    el.style.outline = '2px solid #c9a84c'
-    el.focus()
-    const field = el.dataset.field!
-    const onBlur = async () => {
-      el.contentEditable = 'false'
-      el.style.outline = ''
-      await saveField(field, el.textContent ?? '')
-      setSavedMsg('Saved!')
-      setTimeout(() => setSavedMsg(''), 2000)
-    }
-    el.addEventListener('blur', onBlur, { once: true })
-    setCtxMenu(null)
-  }
-
-  // --- AI ---
   async function runAI() {
-    if (!aiModal) return
+    if (!aiModal || !aiPrompt.trim()) return
     setAiLoading(true)
-    setAiSuggestion('')
-    const res = await fetch('/api/admin/ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: aiPrompt,
-        context: aiModal.currentValue,
-        field: aiModal.field,
-        provider: aiProvider,
-      }),
-    })
-    const data = await res.json()
-    setAiSuggestion(data.result ?? data.error ?? 'No result')
-    setAiLoading(false)
+    try {
+      const r = await fetch('/api/admin/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: aiPrompt, context: aiModal.value, field: aiModal.kind, provider: aiProvider }),
+      })
+      const d = await r.json()
+      setAiResult(d.result || d.error || 'No result')
+    } finally { setAiLoading(false) }
   }
 
   async function applyAI() {
-    if (!aiModal || !aiSuggestion) return
-    await saveField(aiModal.field, aiSuggestion)
-    setSavedMsg('Applied!')
-    setTimeout(() => setSavedMsg(''), 2000)
-    setAiModal(null)
-    setAiSuggestion('')
-    setAiPrompt('')
+    if (!aiModal || !aiResult) return
+    aiModal.el.innerHTML = aiResult
+    await saveOverride(aiModal.el, 'text', aiResult)
+    showMsg('Applied')
+    setAiModal(null); setAiResult(''); setAiPrompt('')
   }
 
-  // --- Image save ---
-  async function applyImage() {
-    if (!imgModal) return
-    await saveField(imgModal.field, imgUrl)
-    setSavedMsg('Image updated!')
-    setTimeout(() => setSavedMsg(''), 2000)
-    setImgModal(null)
-  }
+  // Theme
+  useEffect(() => {
+    if (!showTheme) return
+    const cs = getComputedStyle(document.documentElement)
+    setColors({
+      charcoal: cs.getPropertyValue('--color-charcoal').trim(),
+      stone: cs.getPropertyValue('--color-stone').trim(),
+      sand: cs.getPropertyValue('--color-sand').trim(),
+      offwhite: cs.getPropertyValue('--color-offwhite').trim(),
+      bronze: cs.getPropertyValue('--color-bronze').trim(),
+      bronzePale: cs.getPropertyValue('--color-bronze-pale').trim(),
+    })
+  }, [showTheme])
 
-  // --- Theme ---
-  function updateColor(key: string, value: string) {
-    setColors(prev => ({ ...prev, [key]: value }))
-    const content = pendingRef.current as { theme?: Record<string, string> }
-    if (!content.theme) content.theme = {}
-    content.theme[key] = value
-    // Apply live via CSS variable
+  function liveColor(key: string, val: string) {
+    setColors(c => ({ ...c, [key]: val }))
     document.documentElement.style.setProperty(
-      `--color-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`,
-      value
+      key === 'bronzePale' ? '--color-bronze-pale' : `--color-${key}`, val
     )
   }
 
-  if (!isAdmin) return null
-
-  const colorLabels: Record<string, string> = {
-    charcoal: 'Background',
-    stone: 'Body text',
-    sand: 'Section bg',
-    offwhite: 'Light bg',
-    bronze: 'Accent',
-    bronzePale: 'Accent light',
+  async function saveTheme() {
+    setSaving(true)
+    const r = await fetch('/api/admin/content'); const c = await r.json()
+    c.theme = { charcoal: colors.charcoal, stone: colors.stone, sand: colors.sand, offwhite: colors.offwhite, bronze: colors.bronze, bronzePale: colors.bronzePale }
+    await fetch('/api/admin/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) })
+    setSaving(false); showMsg('Theme saved')
   }
 
+  function showMsg(m: string) { setMsg(m); setTimeout(() => setMsg(''), 2200) }
+
+  if (!isAdmin) return null
+
+  const colorLabels: Record<string, string> = { charcoal: 'Dark BG', stone: 'Body text', sand: 'Sand BG', offwhite: 'Light BG', bronze: 'Accent', bronzePale: 'Accent light' }
+
   return (
-    <>
-      {/* Floating admin bar */}
-      <div style={{
-        position: 'fixed',
-        bottom: '1.25rem',
-        right: '1.25rem',
-        zIndex: 10000,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-end',
-        gap: '0.5rem',
-      }}>
-        {editMode && (
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <button
-              onClick={() => setThemePanel(p => ({ open: !p.open }))}
-              style={pillBtn('#333')}
-            >
-              🎨 Theme
-            </button>
-            <button onClick={saveAll} disabled={saving} style={pillBtn('#2a5c3f')}>
-              {saving ? 'Saving…' : savedMsg || '💾 Save All'}
-            </button>
-            <button onClick={async () => { await fetch('/api/admin/logout', { method: 'POST' }); window.location.reload() }} style={pillBtn('#5a2a2a')}>
-              Log out
-            </button>
-          </div>
-        )}
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          {savedMsg && !editMode && (
-            <span style={{ fontSize: '0.72rem', color: '#2a5c3f', background: '#e8f5e9', padding: '0.3rem 0.7rem' }}>
-              {savedMsg}
-            </span>
-          )}
-          <button
-            onClick={() => setEditMode(e => !e)}
-            style={{
-              padding: '0.6rem 1.1rem',
-              background: editMode ? '#8b6914' : '#1a1a1a',
-              color: '#faf8f4',
-              border: 'none',
-              fontSize: '0.75rem',
-              letterSpacing: '0.08em',
-              cursor: 'pointer',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-            }}
-          >
-            {editMode ? '✏️ Editing — click text or right-click' : '✏️ Edit Site'}
-          </button>
+    <div id="__le" style={{ position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem', fontFamily: 'var(--font-body)' }}>
+
+      {/* Status hint when editing */}
+      {editMode && (
+        <div style={{ background: 'rgba(20,20,20,0.93)', border: '1px solid rgba(139,105,20,.35)', borderRadius: '6px', padding: '0.55rem 0.85rem', maxWidth: '280px' }}>
+          <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,.65)', margin: 0, lineHeight: 1.6 }}>
+            <b style={{ color: '#c9a84c' }}>Click</b> any text to edit it inline<br />
+            <b style={{ color: '#c9a84c' }}>Click</b> any image to replace it<br />
+            <b style={{ color: '#c9a84c' }}>Right-click</b> anything for AI rewrite
+          </p>
         </div>
+      )}
+
+      {msg && (
+        <div style={{ background: 'rgba(42,92,63,0.95)', borderRadius: '5px', padding: '0.4rem 0.8rem' }}>
+          <p style={{ fontSize: '0.7rem', color: '#a8e6bf', margin: 0 }}>✓ {msg}</p>
+        </div>
+      )}
+
+      {/* Toolbar */}
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <Btn onClick={() => setShowTheme(t => !t)} active={showTheme}>🎨 Theme</Btn>
+        <Btn onClick={() => setEditMode(m => !m)} active={editMode}>{editMode ? '✓ Editing' : '✏️ Edit Site'}</Btn>
       </div>
 
-      {/* Theme colour panel */}
-      {themePanel.open && editMode && (
-        <div style={{
-          position: 'fixed',
-          bottom: '5rem',
-          right: '1.25rem',
-          zIndex: 9999,
-          background: '#1a1a1a',
-          border: '1px solid rgba(255,255,255,0.1)',
-          padding: '1.25rem',
-          width: '260px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-        }}>
-          <p style={{ fontSize: '0.65rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8b6914', marginBottom: '1rem' }}>
-            Colour Theme
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-            {Object.entries(colorLabels).map(([key, label]) => (
-              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <input
-                  type="color"
-                  value={colors[key] ?? '#000000'}
-                  onChange={e => updateColor(key, e.target.value)}
-                  style={{ width: '28px', height: '24px', border: 'none', padding: 0, background: 'none', cursor: 'pointer', flexShrink: 0 }}
-                />
-                <input
-                  type="text"
-                  value={colors[key] ?? ''}
-                  onChange={e => updateColor(key, e.target.value)}
-                  style={{ flex: 1, padding: '0.3rem 0.5rem', background: '#111', border: '1px solid rgba(255,255,255,0.1)', color: '#faf8f4', fontSize: '0.75rem', outline: 'none' }}
-                />
-                <span style={{ fontSize: '0.68rem', color: '#555', minWidth: '70px' }}>{label}</span>
+      {/* Theme panel */}
+      {showTheme && (
+        <div style={{ background: '#141414', border: '1px solid rgba(139,105,20,.4)', borderRadius: '8px', padding: '1.2rem', width: '268px', maxHeight: '72vh', overflowY: 'auto' }}>
+          <p style={eyebrow}>Site Colours</p>
+          {Object.entries(colorLabels).map(([key, label]) => (
+            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.6rem' }}>
+              <input type="color" value={colors[key] || '#000000'} onChange={e => liveColor(key, e.target.value)}
+                style={{ width: '2rem', height: '2rem', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: 0, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <p style={micro}>{label}</p>
+                <input type="text" value={colors[key] || ''} onChange={e => { const v = e.target.value; setColors(c => ({ ...c, [key]: v })); if (/^#[0-9a-fA-F]{6}$/.test(v)) liveColor(key, v) }}
+                  style={inputS} />
               </div>
+            </div>
+          ))}
+          <Btn full onClick={saveTheme} disabled={saving}>{saving ? 'Saving…' : 'Save Theme'}</Btn>
+        </div>
+      )}
+
+      {/* Context menu */}
+      {ctxMenu && (
+        <div style={{ position: 'fixed', top: ctxMenu.y, left: ctxMenu.x, background: '#141414', border: '1px solid rgba(139,105,20,.5)', borderRadius: '6px', zIndex: 10000, overflow: 'hidden', minWidth: '178px', boxShadow: '0 6px 24px rgba(0,0,0,.6)' }} onClick={e => e.stopPropagation()}>
+          {ctxMenu.kind === 'text' ? <>
+            <CtxRow onClick={() => {
+              const el = ctxMenu.el; setCtxMenu(null)
+              const orig = el.innerHTML
+              el.contentEditable = 'true'; el.focus()
+              const commit = () => { el.contentEditable = 'false'; if (el.innerHTML !== orig) saveOverride(el, 'text', el.innerHTML); el.removeEventListener('blur', commit) }
+              el.addEventListener('blur', commit)
+            }}>Edit text inline</CtxRow>
+            <CtxRow onClick={() => { setAiModal({ el: ctxMenu.el, value: ctxMenu.el.innerText, kind: 'text' }); setCtxMenu(null) }}>✨ Rewrite with AI</CtxRow>
+          </> : <>
+            <CtxRow onClick={() => {
+              const img = ctxMenu.el as HTMLImageElement
+              setImgModal({ el: img, src: img.currentSrc || img.src })
+              setImgUrl(img.currentSrc || img.src)
+              setCtxMenu(null)
+            }}>Replace image</CtxRow>
+            <CtxRow onClick={() => { setAiModal({ el: ctxMenu.el, value: (ctxMenu.el as HTMLImageElement).alt || 'image', kind: 'image' }); setCtxMenu(null) }}>✨ Suggest image URL</CtxRow>
+          </>}
+        </div>
+      )}
+
+      {/* Image modal */}
+      {imgModal && (
+        <Modal title="Replace Image" onClose={() => setImgModal(null)}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imgUrl || imgModal.src} alt="" style={{ width: '100%', height: '148px', objectFit: 'cover', borderRadius: '4px', marginBottom: '0.75rem', display: 'block' }} />
+          <p style={micro}>New image URL</p>
+          <input type="text" value={imgUrl} onChange={e => setImgUrl(e.target.value)} placeholder="https://images.unsplash.com/photo-…" style={{ ...inputS, marginBottom: '0.35rem' }} />
+          <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,.35)', lineHeight: 1.5, marginBottom: '1rem' }}>
+            Unsplash: open photo → right-click image → Copy image address
+          </p>
+          <Btn full onClick={applyImage}>Apply &amp; Save</Btn>
+        </Modal>
+      )}
+
+      {/* AI modal */}
+      {aiModal && (
+        <Modal title="Edit with AI" onClose={() => { setAiModal(null); setAiResult(''); setAiPrompt('') }}>
+          <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,.45)', fontStyle: 'italic', marginBottom: '0.75rem', maxHeight: '52px', overflow: 'hidden', lineHeight: 1.5 }}>
+            {aiModal.value.slice(0, 160)}{aiModal.value.length > 160 ? '…' : ''}
+          </p>
+          <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem' }}>
+            {(['claude', 'gemini'] as const).map(p => (
+              <button key={p} onClick={() => setAiProvider(p)} style={{ fontSize: '0.65rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: aiProvider === p ? '#fff' : 'rgba(255,255,255,.4)', background: aiProvider === p ? 'rgba(139,105,20,.65)' : 'transparent', border: `1px solid ${aiProvider === p ? 'rgba(139,105,20,.8)' : 'rgba(255,255,255,.15)'}`, borderRadius: '4px', padding: '0.25rem 0.65rem', cursor: 'pointer' }}>
+                {p === 'claude' ? '◆ Claude' : '✦ Gemini'}
+              </button>
             ))}
           </div>
-          <button
-            onClick={saveAll}
-            style={{ marginTop: '1rem', width: '100%', padding: '0.5rem', background: '#8b6914', color: '#fff', border: 'none', fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}
-          >
-            Save Theme
-          </button>
-        </div>
-      )}
-
-      {/* Right-click context menu */}
-      {ctxMenu && (
-        <div
-          style={{
-            position: 'fixed',
-            top: ctxMenu.y,
-            left: ctxMenu.x,
-            zIndex: 10001,
-            background: '#1a1a1a',
-            border: '1px solid rgba(255,255,255,0.1)',
-            minWidth: '200px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-          }}
-          onClick={e => e.stopPropagation()}
-        >
-          <div style={{ padding: '0.4rem 0.75rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <p style={{ fontSize: '0.6rem', color: '#555', letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>
-              {ctxMenu.el.dataset.field}
-            </p>
-          </div>
-          {ctxMenu.el.dataset.fieldType === 'text' && (
-            <MenuItem
-              icon="✏️"
-              label="Edit directly"
-              onClick={() => openInlineEdit(ctxMenu.el)}
-            />
-          )}
-          {ctxMenu.el.dataset.fieldType === 'image' && (
-            <MenuItem
-              icon="🖼"
-              label="Replace image"
-              onClick={() => {
-                setImgUrl(ctxMenu.el.dataset.fieldValue ?? '')
-                setImgModal({ field: ctxMenu.el.dataset.field!, currentSrc: ctxMenu.el.dataset.fieldValue ?? '' })
-                setCtxMenu(null)
-              }}
-            />
-          )}
-          <MenuItem
-            icon="✦"
-            label="Edit with Claude"
-            onClick={() => {
-              setAiProvider('claude')
-              setAiModal({ field: ctxMenu.el.dataset.field!, fieldType: ctxMenu.el.dataset.fieldType!, currentValue: ctxMenu.el.dataset.fieldValue ?? ctxMenu.el.textContent ?? '' })
-              setAiPrompt('')
-              setAiSuggestion('')
-              setCtxMenu(null)
-            }}
-          />
-          <MenuItem
-            icon="✦"
-            label="Edit with Gemini"
-            onClick={() => {
-              setAiProvider('gemini')
-              setAiModal({ field: ctxMenu.el.dataset.field!, fieldType: ctxMenu.el.dataset.fieldType!, currentValue: ctxMenu.el.dataset.fieldValue ?? ctxMenu.el.textContent ?? '' })
-              setAiPrompt('')
-              setAiSuggestion('')
-              setCtxMenu(null)
-            }}
-          />
-        </div>
-      )}
-
-      {/* AI Modal */}
-      {aiModal && (
-        <Modal onClose={() => setAiModal(null)}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '0.9rem', fontWeight: 500, color: '#faf8f4', margin: 0 }}>
-              Edit with {aiProvider === 'claude' ? 'Claude' : 'Gemini'}
-            </h3>
-            <div style={{ display: 'flex', gap: '0.4rem' }}>
-              {(['claude', 'gemini'] as const).map(p => (
-                <button key={p} onClick={() => setAiProvider(p)} style={{ padding: '0.25rem 0.6rem', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em', background: aiProvider === p ? '#8b6914' : 'transparent', color: aiProvider === p ? '#fff' : '#555', border: `1px solid ${aiProvider === p ? '#8b6914' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div style={{ marginBottom: '1rem', padding: '0.6rem 0.75rem', background: '#111', border: '1px solid rgba(255,255,255,0.06)', fontSize: '0.82rem', color: '#777', maxHeight: '72px', overflow: 'auto', wordBreak: 'break-all' }}>
-            {aiModal.currentValue}
-          </div>
-          <textarea
-            autoFocus
-            value={aiPrompt}
-            onChange={e => setAiPrompt(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) runAI() }}
-            placeholder="Describe the change… (⌘↵ to generate)"
-            rows={3}
-            style={{ width: '100%', padding: '0.6rem 0.75rem', background: '#111', border: '1px solid rgba(255,255,255,0.12)', color: '#faf8f4', fontSize: '0.875rem', outline: 'none', resize: 'vertical', boxSizing: 'border-box', marginBottom: '0.75rem' }}
-          />
-          <button onClick={runAI} disabled={aiLoading || !aiPrompt} style={{ width: '100%', padding: '0.6rem', background: '#8b6914', color: '#fff', border: 'none', fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: aiLoading ? 'not-allowed' : 'pointer', opacity: aiLoading ? 0.7 : 1, marginBottom: '1rem' }}>
-            {aiLoading ? 'Generating…' : 'Generate'}
-          </button>
-          {aiSuggestion && (
+          <p style={micro}>Instruction</p>
+          <textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) runAI() }} placeholder={`"Make this shorter and more evocative" (⌘↵)`} style={{ ...inputS, height: '76px', resize: 'vertical', marginBottom: '0.75rem' }} />
+          <Btn full onClick={runAI} disabled={aiLoading || !aiPrompt.trim()}>{aiLoading ? 'Generating…' : 'Generate'}</Btn>
+          {aiResult && (
             <>
-              <div style={{ padding: '0.75rem', background: '#111', border: '1px solid rgba(139,105,20,0.4)', fontSize: '0.875rem', color: '#faf8f4', wordBreak: 'break-all', marginBottom: '0.75rem' }}>
-                {aiSuggestion}
+              <div style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(139,105,20,.3)', borderRadius: '4px', padding: '0.65rem', margin: '0.75rem 0', fontSize: '0.82rem', color: 'rgba(255,255,255,.85)', lineHeight: 1.65 }}>
+                {aiResult}
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button onClick={applyAI} style={{ flex: 1, padding: '0.55rem', background: '#2a5c3f', color: '#fff', border: 'none', fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
-                  Apply & Save
-                </button>
-                <button onClick={() => setAiSuggestion('')} style={{ flex: 1, padding: '0.55rem', background: 'transparent', color: '#555', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
-                  Discard
-                </button>
+                <Btn full onClick={applyAI}>Apply &amp; Save</Btn>
+                <Btn full onClick={() => setAiResult('')}>Discard</Btn>
               </div>
             </>
           )}
         </Modal>
       )}
-
-      {/* Image replace modal */}
-      {imgModal && (
-        <Modal onClose={() => setImgModal(null)}>
-          <h3 style={{ fontSize: '0.9rem', fontWeight: 500, color: '#faf8f4', marginBottom: '1rem' }}>Replace Image</h3>
-          {imgUrl && (
-            <div style={{ position: 'relative', aspectRatio: '16/7', overflow: 'hidden', marginBottom: '0.75rem', background: '#111' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imgUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
-          )}
-          <p style={{ fontSize: '0.65rem', color: '#555', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>Image URL</p>
-          <input
-            type="text"
-            value={imgUrl}
-            onChange={e => setImgUrl(e.target.value)}
-            placeholder="https://images.unsplash.com/photo-…"
-            style={{ width: '100%', padding: '0.6rem 0.75rem', background: '#111', border: '1px solid rgba(255,255,255,0.12)', color: '#faf8f4', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box', marginBottom: '0.75rem' }}
-          />
-          <p style={{ fontSize: '0.68rem', color: '#555', marginBottom: '1rem', lineHeight: 1.5 }}>
-            Tip: find photos at <a href="https://unsplash.com" target="_blank" rel="noreferrer" style={{ color: '#8b6914' }}>unsplash.com</a>, open a photo, right-click the image → Copy image address.
-          </p>
-          <button onClick={applyImage} style={{ width: '100%', padding: '0.6rem', background: '#8b6914', color: '#fff', border: 'none', fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
-            Apply & Save
-          </button>
-        </Modal>
-      )}
-    </>
+    </div>
   )
 }
 
-function pillBtn(bg: string): React.CSSProperties {
-  return { padding: '0.45rem 0.85rem', background: bg, color: '#faf8f4', border: 'none', fontSize: '0.7rem', letterSpacing: '0.06em', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }
-}
+// ── Sub-components ──────────────────────────────────────────
 
-function MenuItem({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
-  const [hover, setHover] = useState(false)
+function Btn({ onClick, active, full, disabled, children }: { onClick: () => void; active?: boolean; full?: boolean; disabled?: boolean; children: React.ReactNode }) {
   return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.6rem 0.85rem', background: hover ? '#2a2a2a' : 'none', border: 'none', color: '#faf8f4', fontSize: '0.82rem', textAlign: 'left', cursor: 'pointer' }}
-    >
-      <span style={{ fontSize: '0.9rem' }}>{icon}</span> {label}
+    <button onClick={onClick} disabled={disabled} style={{ fontFamily: 'var(--font-body)', fontSize: '0.68rem', fontWeight: 500, letterSpacing: '0.09em', textTransform: 'uppercase', color: '#fff', background: active ? '#8b6914' : '#1a1a1a', border: '1px solid rgba(139,105,20,.5)', borderRadius: '5px', padding: '0.45rem 0.9rem', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1, width: full ? '100%' : 'auto', whiteSpace: 'nowrap', display: 'block' }}>
+      {children}
     </button>
   )
 }
 
-function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+function CtxRow({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
-    <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', width: '100%', maxWidth: '520px', padding: '1.75rem', position: 'relative' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: '#555', fontSize: '1.1rem', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+    <button onClick={onClick} style={{ display: 'block', width: '100%', textAlign: 'left', fontFamily: 'var(--font-body)', fontSize: '0.78rem', color: 'rgba(255,255,255,.88)', background: 'transparent', border: 'none', padding: '0.58rem 0.9rem', cursor: 'pointer' }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(139,105,20,.28)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+      {children}
+    </button>
+  )
+}
+
+function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div style={{ background: '#141414', border: '1px solid rgba(139,105,20,.4)', borderRadius: '10px', padding: '1.5rem', width: '100%', maxWidth: '430px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <p style={eyebrow}>{title}</p>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.4)', fontSize: '1.1rem', cursor: 'pointer' }}>✕</button>
+        </div>
         {children}
       </div>
     </div>
   )
 }
+
+const eyebrow: React.CSSProperties = { fontFamily: 'var(--font-body)', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.13em', textTransform: 'uppercase', color: 'rgba(139,105,20,1)', margin: '0 0 .85rem' }
+const micro: React.CSSProperties = { fontFamily: 'var(--font-body)', fontSize: '0.65rem', fontWeight: 500, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'rgba(255,255,255,.45)', margin: '0 0 .3rem' }
+const inputS: React.CSSProperties = { fontFamily: 'var(--font-body)', fontSize: '0.82rem', color: '#fff', background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.15)', borderRadius: '5px', padding: '0.45rem 0.7rem', width: '100%', outline: 'none', display: 'block', boxSizing: 'border-box' }
