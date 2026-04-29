@@ -17,6 +17,7 @@ export default function ContactPage() {
         imageAlt={hero.imageAlt}
         eyebrow={hero.eyebrow}
         heading={hero.heading}
+        fieldPrefix="pages.contact.hero"
         subheading={hero.subheading ?? ''}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Contact', href: '/contact' }]}
       />

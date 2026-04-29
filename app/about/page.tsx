@@ -20,6 +20,7 @@ export default function AboutPage() {
         imageAlt={hero.imageAlt}
         eyebrow={hero.eyebrow}
         heading={hero.heading}
+        fieldPrefix="pages.about.hero"
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'About', href: '/about' }]}
       />
 

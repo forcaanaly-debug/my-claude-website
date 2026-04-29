@@ -11,6 +11,7 @@ interface HeroProps {
   ctaSecondary?: { text: string; href: string }
   fullHeight?: boolean
   overlayStrength?: 'light' | 'medium' | 'strong'
+  fieldPrefix?: string
 }
 
 export default function Hero({
@@ -23,7 +24,9 @@ export default function Hero({
   ctaSecondary,
   fullHeight = true,
   overlayStrength = 'medium',
+  fieldPrefix,
 }: HeroProps) {
+  const f = fieldPrefix
   const overlayMap = {
     light: 'rgba(15,15,15,0.35)',
     medium: 'rgba(15,15,15,0.52)',
@@ -40,14 +43,19 @@ export default function Hero({
       overflow: 'hidden',
     }}>
       {/* Background Image */}
-      <Image
-        src={imageSrc}
-        alt={imageAlt}
-        fill
-        priority
-        sizes="100vw"
-        style={{ objectFit: 'cover', objectPosition: 'center' }}
-      />
+      <div
+        {...(f ? { 'data-field': `${f}.imageSrc`, 'data-field-type': 'image', 'data-field-value': imageSrc } : {})}
+        style={{ position: 'absolute', inset: 0, zIndex: 0 }}
+      >
+        <Image
+          src={imageSrc}
+          alt={imageAlt}
+          fill
+          priority
+          sizes="100vw"
+          style={{ objectFit: 'cover', objectPosition: 'center' }}
+        />
+      </div>
 
       {/* Overlay */}
       <div style={{
@@ -74,7 +82,11 @@ export default function Hero({
       {/* Content */}
       <div className="container-wide" style={{ position: 'relative', zIndex: 3, paddingBottom: 'clamp(3rem, 6vw, 6rem)', width: '100%' }}>
         {eyebrow && (
-          <p className="text-eyebrow animate-fade-up" style={{ color: 'var(--color-bronze-pale)', marginBottom: '1.25rem' }}>
+          <p
+            className="text-eyebrow animate-fade-up"
+            style={{ color: 'var(--color-bronze-pale)', marginBottom: '1.25rem' }}
+            {...(f ? { 'data-field': `${f}.eyebrow`, 'data-field-type': 'text', 'data-field-value': eyebrow } : {})}
+          >
             {eyebrow}
           </p>
         )}
@@ -90,6 +102,7 @@ export default function Hero({
             maxWidth: '900px',
             marginBottom: subheading ? '1.5rem' : '2rem',
           }}
+          {...(f ? { 'data-field': `${f}.heading`, 'data-field-type': 'text', 'data-field-value': heading } : {})}
         >
           {heading}
         </h1>
@@ -104,6 +117,7 @@ export default function Hero({
               lineHeight: 1.75,
               marginBottom: '2.5rem',
             }}
+            {...(f ? { 'data-field': `${f}.subheading`, 'data-field-type': 'text', 'data-field-value': subheading } : {})}
           >
             {subheading}
           </p>

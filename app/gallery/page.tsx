@@ -117,6 +117,7 @@ export default function GalleryPage() {
         imageAlt={hero.imageAlt}
         eyebrow={hero.eyebrow}
         heading={hero.heading}
+        fieldPrefix="pages.gallery.hero"
         subheading={hero.subheading ?? ''}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Gallery', href: '/gallery' }]}
       />

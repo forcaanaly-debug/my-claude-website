@@ -28,6 +28,7 @@ export default function HomePage() {
         eyebrow={hero.eyebrow}
         heading={hero.heading}
         subheading={hero.subheading ?? ''}
+        fieldPrefix="pages.home.hero"
         ctaPrimary={{ text: 'Explore Destinations', href: '/destinations' }}
         ctaSecondary={{ text: 'View Tours', href: '/tours' }}
       />

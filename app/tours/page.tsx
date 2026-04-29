@@ -23,6 +23,7 @@ export default function ToursPage() {
         imageAlt={hero.imageAlt}
         eyebrow={hero.eyebrow}
         heading={hero.heading}
+        fieldPrefix="pages.tours.hero"
         subheading={hero.subheading ?? ''}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Tours', href: '/tours' }]}
       />

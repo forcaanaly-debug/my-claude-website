@@ -17,7 +17,14 @@ export async function POST(req: NextRequest) {
     httpOnly: true,
     sameSite: 'strict',
     path: '/',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 7,
+  })
+  // Readable cookie (not httpOnly) so the client-side editor can detect admin mode
+  res.cookies.set('admin_ui', '1', {
+    httpOnly: false,
+    sameSite: 'strict',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 7,
   })
   return res
 }

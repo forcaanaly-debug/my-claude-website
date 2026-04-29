@@ -56,6 +56,7 @@ export default function ServicesPage() {
         imageAlt={hero.imageAlt}
         eyebrow={hero.eyebrow}
         heading={hero.heading}
+        fieldPrefix="pages.services.hero"
         subheading={hero.subheading ?? ''}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Services', href: '/services' }]}
       />

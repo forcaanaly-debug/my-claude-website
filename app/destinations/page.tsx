@@ -19,6 +19,7 @@ export default function DestinationsPage() {
         imageAlt={hero.imageAlt}
         eyebrow={hero.eyebrow}
         heading={hero.heading}
+        fieldPrefix="pages.destinations.hero"
         subheading={hero.subheading ?? ''}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Destinations', href: '/destinations' }]}
       />
