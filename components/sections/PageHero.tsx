@@ -1,6 +1,13 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
+interface TinaFields {
+  imageSrc?: string
+  eyebrow?: string
+  heading?: string
+  subheading?: string
+}
+
 interface PageHeroProps {
   imageSrc: string
   imageAlt: string
@@ -8,7 +15,7 @@ interface PageHeroProps {
   heading: string
   subheading?: string
   breadcrumb?: { label: string; href: string }[]
-  fieldPrefix?: string
+  tinaFields?: TinaFields
 }
 
 export default function PageHero({
@@ -18,9 +25,9 @@ export default function PageHero({
   heading,
   subheading,
   breadcrumb,
-  fieldPrefix,
+  tinaFields,
 }: PageHeroProps) {
-  const f = fieldPrefix
+  const tf = tinaFields
   return (
     <section style={{
       position: 'relative',
@@ -31,7 +38,7 @@ export default function PageHero({
       overflow: 'hidden',
     }}>
       <div
-        {...(f ? { 'data-field': `${f}.imageSrc`, 'data-field-type': 'image', 'data-field-value': imageSrc } : {})}
+        {...(tf?.imageSrc ? { 'data-tina-field': tf.imageSrc } : {})}
         style={{ position: 'absolute', inset: 0 }}
       >
         <Image
@@ -77,7 +84,7 @@ export default function PageHero({
           <p
             className="text-eyebrow"
             style={{ color: 'var(--color-bronze-pale)', marginBottom: '1rem' }}
-            {...(f ? { 'data-field': `${f}.eyebrow`, 'data-field-type': 'text', 'data-field-value': eyebrow } : {})}
+            {...(tf?.eyebrow ? { 'data-tina-field': tf.eyebrow } : {})}
           >
             {eyebrow}
           </p>
@@ -93,7 +100,7 @@ export default function PageHero({
             maxWidth: '800px',
             marginBottom: subheading ? '1rem' : 0,
           }}
-          {...(f ? { 'data-field': `${f}.heading`, 'data-field-type': 'text', 'data-field-value': heading } : {})}
+          {...(tf?.heading ? { 'data-tina-field': tf.heading } : {})}
         >
           {heading}
         </h1>
@@ -106,7 +113,7 @@ export default function PageHero({
               maxWidth: '540px',
               lineHeight: 1.7,
             }}
-            {...(f ? { 'data-field': `${f}.subheading`, 'data-field-type': 'text', 'data-field-value': subheading } : {})}
+            {...(tf?.subheading ? { 'data-tina-field': tf.subheading } : {})}
           >
             {subheading}
           </p>

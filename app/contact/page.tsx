@@ -1,24 +1,28 @@
 import type { Metadata } from 'next'
-import PageHero from '@/components/sections/PageHero'
+import PageHeroClient from '@/components/sections/PageHeroClient'
 import ContactForm from '@/components/contact/ContactForm'
 import { getContent } from '@/lib/content'
+import { client } from '@/tina/__generated__/client'
 
 export const metadata: Metadata = {
   title: 'Contact',
   description: 'Get in touch with Silk Route Expeditions to begin planning your journey.',
 }
 
-export default function ContactPage() {
-  const hero = getContent().pages.contact.hero
+export default async function ContactPage() {
+  const staticHero = getContent().pages.contact.hero
+  let tinaProps = null
+  try {
+    tinaProps = await client.queries.page({ relativePath: 'contact.json' })
+  } catch {
+    // TinaCMS Cloud not yet connected
+  }
+
   return (
     <>
-      <PageHero
-        imageSrc={hero.imageSrc}
-        imageAlt={hero.imageAlt}
-        eyebrow={hero.eyebrow}
-        heading={hero.heading}
-        fieldPrefix="pages.contact.hero"
-        subheading={hero.subheading ?? ''}
+      <PageHeroClient
+        tinaProps={tinaProps}
+        staticHero={staticHero}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Contact', href: '/contact' }]}
       />
 

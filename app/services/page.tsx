@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
-import PageHero from '@/components/sections/PageHero'
+import PageHeroClient from '@/components/sections/PageHeroClient'
 import CallToAction from '@/components/sections/CallToAction'
 import { getContent } from '@/lib/content'
+import { client } from '@/tina/__generated__/client'
 
 export const metadata: Metadata = {
   title: 'Services',
@@ -47,17 +48,20 @@ const services = [
   },
 ]
 
-export default function ServicesPage() {
-  const hero = getContent().pages.services.hero
+export default async function ServicesPage() {
+  const staticHero = getContent().pages.services.hero
+  let tinaProps = null
+  try {
+    tinaProps = await client.queries.page({ relativePath: 'services.json' })
+  } catch {
+    // TinaCMS Cloud not yet connected
+  }
+
   return (
     <>
-      <PageHero
-        imageSrc={hero.imageSrc}
-        imageAlt={hero.imageAlt}
-        eyebrow={hero.eyebrow}
-        heading={hero.heading}
-        fieldPrefix="pages.services.hero"
-        subheading={hero.subheading ?? ''}
+      <PageHeroClient
+        tinaProps={tinaProps}
+        staticHero={staticHero}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Services', href: '/services' }]}
       />
 

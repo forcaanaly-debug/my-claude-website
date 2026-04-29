@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import HomeClient from '@/app/home-client';
+import { client } from '@/tina/__generated__/client';
 import DestinationCard from '@/components/cards/DestinationCard';
 import TourCard from '@/components/cards/TourCard';
 import Testimonials from '@/components/sections/Testimonials';
@@ -13,13 +14,20 @@ export const metadata: Metadata = {
   title: 'Silk Route Expeditions — Curated Luxury Tours to Central Asia',
 };
 
-export default function HomePage() {
+export default async function HomePage() {
   const featuredTours = getFeaturedTours()
+
+  let tinaProps = null
+  try {
+    tinaProps = await client.queries.page({ relativePath: 'home.json' })
+  } catch {
+    // TinaCMS Cloud not yet connected — renders with static content
+  }
 
   return (
     <>
       {/* HERO — visual editing via TinaCMS */}
-      <HomeClient />
+      <HomeClient tinaProps={tinaProps} />
 
       {/* DESTINATIONS */}
       <section style={{ background: 'var(--color-offwhite)' }} className="section-padding">

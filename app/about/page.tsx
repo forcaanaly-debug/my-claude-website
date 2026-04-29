@@ -1,26 +1,31 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import PageHero from '@/components/sections/PageHero'
+import PageHeroClient from '@/components/sections/PageHeroClient'
 import CallToAction from '@/components/sections/CallToAction'
 import team from '@/lib/data/team'
 import { getContent } from '@/lib/content'
+import { client } from '@/tina/__generated__/client'
 
 export const metadata: Metadata = {
   title: 'About Us',
   description: 'The story behind Silk Route Expeditions — who we are, what we believe, and how we operate.',
 }
 
-export default function AboutPage() {
-  const hero = getContent().pages.about.hero
+export default async function AboutPage() {
+  const staticHero = getContent().pages.about.hero
+  let tinaProps = null
+  try {
+    tinaProps = await client.queries.page({ relativePath: 'about.json' })
+  } catch {
+    // TinaCMS Cloud not yet connected
+  }
+
   return (
     <>
-      <PageHero
-        imageSrc={hero.imageSrc}
-        imageAlt={hero.imageAlt}
-        eyebrow={hero.eyebrow}
-        heading={hero.heading}
-        fieldPrefix="pages.about.hero"
+      <PageHeroClient
+        tinaProps={tinaProps}
+        staticHero={staticHero}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'About', href: '/about' }]}
       />
 

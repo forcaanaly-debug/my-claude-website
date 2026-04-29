@@ -1,27 +1,31 @@
 import type { Metadata } from 'next'
-import PageHero from '@/components/sections/PageHero'
+import PageHeroClient from '@/components/sections/PageHeroClient'
 import GalleryGrid from '@/components/gallery/GalleryGrid'
 import CallToAction from '@/components/sections/CallToAction'
 import { getContent, getGalleryImages } from '@/lib/content'
+import { client } from '@/tina/__generated__/client'
 
 export const metadata: Metadata = {
   title: 'Gallery',
   description: 'Images from across the Silk Road — Uzbekistan, Pakistan, Afghanistan, and China.',
 }
 
-export default function GalleryPage() {
-  const hero = getContent().pages.gallery.hero
+export default async function GalleryPage() {
+  const staticHero = getContent().pages.gallery.hero
   const rawImages = getGalleryImages()
   const images = rawImages.map((img, i) => ({ id: String(i + 1), ...img }))
+  let tinaProps = null
+  try {
+    tinaProps = await client.queries.page({ relativePath: 'gallery.json' })
+  } catch {
+    // TinaCMS Cloud not yet connected
+  }
+
   return (
     <>
-      <PageHero
-        imageSrc={hero.imageSrc}
-        imageAlt={hero.imageAlt}
-        eyebrow={hero.eyebrow}
-        heading={hero.heading}
-        fieldPrefix="pages.gallery.hero"
-        subheading={hero.subheading ?? ''}
+      <PageHeroClient
+        tinaProps={tinaProps}
+        staticHero={staticHero}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Gallery', href: '/gallery' }]}
       />
 

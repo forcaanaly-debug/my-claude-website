@@ -1,6 +1,14 @@
 import Link from 'next/link'
 import Image from 'next/image'
 
+interface TinaFields {
+  imageSrc?: string
+  imageAlt?: string
+  eyebrow?: string
+  heading?: string
+  subheading?: string
+}
+
 interface HeroProps {
   imageSrc: string
   imageAlt: string
@@ -11,7 +19,7 @@ interface HeroProps {
   ctaSecondary?: { text: string; href: string }
   fullHeight?: boolean
   overlayStrength?: 'light' | 'medium' | 'strong'
-  fieldPrefix?: string
+  tinaFields?: TinaFields
 }
 
 export default function Hero({
@@ -24,9 +32,9 @@ export default function Hero({
   ctaSecondary,
   fullHeight = true,
   overlayStrength = 'medium',
-  fieldPrefix,
+  tinaFields,
 }: HeroProps) {
-  const f = fieldPrefix
+  const tf = tinaFields
   const overlayMap = {
     light: 'rgba(15,15,15,0.35)',
     medium: 'rgba(15,15,15,0.52)',
@@ -44,7 +52,7 @@ export default function Hero({
     }}>
       {/* Background Image */}
       <div
-        {...(f ? { 'data-field': `${f}.imageSrc`, 'data-field-type': 'image', 'data-field-value': imageSrc } : {})}
+        {...(tf?.imageSrc ? { 'data-tina-field': tf.imageSrc } : {})}
         style={{ position: 'absolute', inset: 0, zIndex: 0 }}
       >
         <Image
@@ -85,7 +93,7 @@ export default function Hero({
           <p
             className="text-eyebrow animate-fade-up"
             style={{ color: 'var(--color-bronze-pale)', marginBottom: '1.25rem' }}
-            {...(f ? { 'data-field': `${f}.eyebrow`, 'data-field-type': 'text', 'data-field-value': eyebrow } : {})}
+            {...(tf?.eyebrow ? { 'data-tina-field': tf.eyebrow } : {})}
           >
             {eyebrow}
           </p>
@@ -102,7 +110,7 @@ export default function Hero({
             maxWidth: '900px',
             marginBottom: subheading ? '1.5rem' : '2rem',
           }}
-          {...(f ? { 'data-field': `${f}.heading`, 'data-field-type': 'text', 'data-field-value': heading } : {})}
+          {...(tf?.heading ? { 'data-tina-field': tf.heading } : {})}
         >
           {heading}
         </h1>
@@ -117,7 +125,7 @@ export default function Hero({
               lineHeight: 1.75,
               marginBottom: '2.5rem',
             }}
-            {...(f ? { 'data-field': `${f}.subheading`, 'data-field-type': 'text', 'data-field-value': subheading } : {})}
+            {...(tf?.subheading ? { 'data-tina-field': tf.subheading } : {})}
           >
             {subheading}
           </p>

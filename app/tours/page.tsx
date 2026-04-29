@@ -1,30 +1,33 @@
 import type { Metadata } from 'next'
-import PageHero from '@/components/sections/PageHero'
+import PageHeroClient from '@/components/sections/PageHeroClient'
 import TourCard from '@/components/cards/TourCard'
 import CallToAction from '@/components/sections/CallToAction'
 import { tours } from '@/lib/data/tours'
 import { getContent } from '@/lib/content'
+import { client } from '@/tina/__generated__/client'
 
 export const metadata: Metadata = {
   title: 'Tours & Expeditions',
   description: "Six signature expeditions across Central Asia, Pakistan, Afghanistan, and China's Silk Road.",
 }
 
-export default function ToursPage() {
+export default async function ToursPage() {
   const cultural = tours.filter(t => t.category === 'cultural')
   const expedition = tours.filter(t => t.category === 'expedition')
   const adventure = tours.filter(t => t.category === 'adventure')
-  const hero = getContent().pages.tours.hero
+  const staticHero = getContent().pages.tours.hero
+  let tinaProps = null
+  try {
+    tinaProps = await client.queries.page({ relativePath: 'tours.json' })
+  } catch {
+    // TinaCMS Cloud not yet connected
+  }
 
   return (
     <>
-      <PageHero
-        imageSrc={hero.imageSrc}
-        imageAlt={hero.imageAlt}
-        eyebrow={hero.eyebrow}
-        heading={hero.heading}
-        fieldPrefix="pages.tours.hero"
-        subheading={hero.subheading ?? ''}
+      <PageHeroClient
+        tinaProps={tinaProps}
+        staticHero={staticHero}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Tours', href: '/tours' }]}
       />
 
