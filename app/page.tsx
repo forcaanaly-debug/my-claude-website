@@ -1,37 +1,25 @@
-import type { Metadata } from 'next'
-import Link from 'next/link'
-import Hero from '@/components/sections/Hero'
-import DestinationCard from '@/components/cards/DestinationCard'
-import TourCard from '@/components/cards/TourCard'
-import Testimonials from '@/components/sections/Testimonials'
-import CallToAction from '@/components/sections/CallToAction'
-import { destinations } from '@/lib/data/destinations'
-import { getFeaturedTours } from '@/lib/data/tours'
-import testimonials from '@/lib/data/testimonials'
-import { getContent } from '@/lib/content'
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import HomeClient from '@/app/home-client';
+import DestinationCard from '@/components/cards/DestinationCard';
+import TourCard from '@/components/cards/TourCard';
+import Testimonials from '@/components/sections/Testimonials';
+import CallToAction from '@/components/sections/CallToAction';
+import { destinations } from '@/lib/data/destinations';
+import { getFeaturedTours } from '@/lib/data/tours';
+import testimonials from '@/lib/data/testimonials';
 
 export const metadata: Metadata = {
   title: 'Silk Route Expeditions — Curated Luxury Tours to Central Asia',
-}
+};
 
 export default function HomePage() {
   const featuredTours = getFeaturedTours()
-  const { pages } = getContent()
-  const hero = pages.home.hero
 
   return (
     <>
-      {/* HERO */}
-      <Hero
-        imageSrc={hero.imageSrc}
-        imageAlt={hero.imageAlt}
-        eyebrow={hero.eyebrow}
-        heading={hero.heading}
-        subheading={hero.subheading ?? ''}
-        fieldPrefix="pages.home.hero"
-        ctaPrimary={{ text: 'Explore Destinations', href: '/destinations' }}
-        ctaSecondary={{ text: 'View Tours', href: '/tours' }}
-      />
+      {/* HERO — visual editing via TinaCMS */}
+      <HomeClient />
 
       {/* DESTINATIONS */}
       <section style={{ background: 'var(--color-offwhite)' }} className="section-padding">
