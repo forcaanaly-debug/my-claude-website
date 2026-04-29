@@ -18,6 +18,12 @@ export interface HeroContent {
   subheading?: string
 }
 
+export interface GalleryImage {
+  src: string
+  alt: string
+  destination: string
+}
+
 export interface SiteContent {
   theme: ThemeColors
   pages: {
@@ -31,13 +37,28 @@ export interface SiteContent {
   }
 }
 
-const contentPath = path.join(process.cwd(), 'data', 'content.json')
-
-export function getContent(): SiteContent {
-  const raw = fs.readFileSync(contentPath, 'utf-8')
-  return JSON.parse(raw) as SiteContent
+function readJson<T>(filePath: string): T {
+  return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as T
 }
 
-export function writeContent(content: SiteContent): void {
-  fs.writeFileSync(contentPath, JSON.stringify(content, null, 2), 'utf-8')
+const root = process.cwd()
+
+export function getContent(): SiteContent {
+  const { theme } = readJson<{ theme: ThemeColors }>(
+    path.join(root, 'content/global/index.json')
+  )
+  const pages = ['home', 'about', 'tours', 'destinations', 'services', 'contact', 'gallery'] as const
+  return {
+    theme,
+    pages: Object.fromEntries(
+      pages.map(p => [p, readJson(path.join(root, `content/pages/${p}.json`))])
+    ) as SiteContent['pages'],
+  }
+}
+
+export function getGalleryImages(): GalleryImage[] {
+  const { images } = readJson<{ images: GalleryImage[] }>(
+    path.join(root, 'content/gallery/index.json')
+  )
+  return images
 }

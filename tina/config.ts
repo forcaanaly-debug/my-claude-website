@@ -1,84 +1,134 @@
 import { defineConfig } from "tinacms";
 
-// Your hosting provider likely exposes this as an environment variable
 const branch =
   process.env.GITHUB_BRANCH ||
   process.env.VERCEL_GIT_COMMIT_REF ||
-  process.env.HEAD ||
   "main";
 
 export default defineConfig({
   branch,
-
-  // Get this from tina.io
   clientId: process.env.NEXT_PUBLIC_TINA_CLIENT_ID,
-  // Get this from tina.io
   token: process.env.TINA_TOKEN,
 
   build: {
     outputFolder: "admin",
     publicFolder: "public",
   },
-  // Uncomment to allow cross-origin requests from non-localhost origins
-  // during local development (e.g. GitHub Codespaces, Gitpod, Docker).
-  // Use 'private' to allow all private-network IPs (WSL2, Docker, etc.)
-  // server: {
-  //   allowedOrigins: ['https://your-codespace.github.dev'],
-  // },
   media: {
     tina: {
       mediaRoot: "",
       publicFolder: "public",
     },
   },
-  // See docs on content modeling for more info on how to setup new content models: https://tina.io/docs/r/content-modelling-collections/
+
   schema: {
-      collections: [
-        // Existing post collection
-        {
-          name: "post",
-          label: "Posts",
-          path: "content/posts",
-          fields: [
-            { type: "string", name: "title", label: "Title", isTitle: true, required: true },
-            { type: "rich-text", name: "body", label: "Body", isBody: true }
-          ],
-          ui: { router: ({ document }) => `/demo/blog/${document._sys.filename}` }
+    collections: [
+      // ── Global site settings (theme colours) ─────────────────
+      {
+        name: "global",
+        label: "Site Settings",
+        path: "content/global",
+        format: "json",
+        match: { include: "index" },
+        ui: {
+          allowedActions: { create: false, delete: false },
+          global: true,
         },
-        // New collection for site pages
-        {
-          name: "page",
-          label: "Site Pages",
-          path: "content/pages",
-          fields: [
-            {
-              type: "object",
-              name: "hero",
-              label: "Hero",
-              fields: [
-                { type: "string", name: "imageSrc", label: "Image Source" },
-                { type: "string", name: "imageAlt", label: "Image Alt" },
-                { type: "string", name: "eyebrow", label: "Eyebrow" },
-                { type: "string", name: "heading", label: "Heading" },
-                { type: "string", name: "subheading", label: "Subheading" }
-              ]
-            }
-          ]
+        fields: [
+          {
+            name: "theme",
+            label: "Theme Colours",
+            type: "object",
+            fields: [
+              { type: "string", name: "charcoal",   label: "Dark Background",  ui: { component: "color" } },
+              { type: "string", name: "stone",      label: "Body Text",        ui: { component: "color" } },
+              { type: "string", name: "sand",       label: "Sand Background",  ui: { component: "color" } },
+              { type: "string", name: "offwhite",   label: "Light Background", ui: { component: "color" } },
+              { type: "string", name: "bronze",     label: "Accent Bronze",    ui: { component: "color" } },
+              { type: "string", name: "bronzePale", label: "Accent Light",     ui: { component: "color" } },
+            ],
+          },
+        ],
+      },
+
+      // ── Page hero sections ────────────────────────────────────
+      {
+        name: "page",
+        label: "Pages",
+        path: "content/pages",
+        format: "json",
+        ui: {
+          allowedActions: { create: false, delete: false },
+          router: ({ document }) => {
+            const map: Record<string, string> = {
+              home:         "/",
+              about:        "/about",
+              tours:        "/tours",
+              destinations: "/destinations",
+              services:     "/services",
+              contact:      "/contact",
+              gallery:      "/gallery",
+            };
+            return map[document._sys.filename] ?? "/";
+          },
         },
-        // Theme collection (optional, for colour palette)
-        {
-          name: "theme",
-          label: "Theme",
-          path: "content/theme",
-          fields: [
-            { type: "string", name: "charcoal", label: "Charcoal" },
-            { type: "string", name: "stone", label: "Stone" },
-            { type: "string", name: "sand", label: "Sand" },
-            { type: "string", name: "offwhite", label: "Offwhite" },
-            { type: "string", name: "bronze", label: "Bronze" },
-            { type: "string", name: "bronzePale", label: "Bronze Pale" }
-          ]
-        }
-      ]
-    },
+        fields: [
+          {
+            name: "hero",
+            label: "Hero Section",
+            type: "object",
+            fields: [
+              {
+                type: "string",
+                name: "imageSrc",
+                label: "Hero Image URL",
+                description: "Full URL — e.g. from Unsplash (right-click image → Copy image address)",
+              },
+              { type: "string", name: "imageAlt",   label: "Image Description (accessibility)" },
+              { type: "string", name: "eyebrow",    label: "Eyebrow (small label above heading)" },
+              { type: "string", name: "heading",    label: "Main Heading" },
+              { type: "string", name: "subheading", label: "Subheading (optional)" },
+            ],
+          },
+        ],
+      },
+
+      // ── Gallery images ────────────────────────────────────────
+      {
+        name: "gallery",
+        label: "Gallery",
+        path: "content/gallery",
+        format: "json",
+        match: { include: "index" },
+        ui: {
+          allowedActions: { create: false, delete: false },
+        },
+        fields: [
+          {
+            name: "images",
+            label: "Images",
+            type: "object",
+            list: true,
+            ui: {
+              itemProps: (item) => ({
+                label: item.destination
+                  ? `${item.destination} — ${String(item.alt ?? "").slice(0, 45)}`
+                  : "New image",
+              }),
+            },
+            fields: [
+              { type: "string", name: "src",         label: "Image URL" },
+              { type: "string", name: "alt",         label: "Description" },
+              {
+                type: "string",
+                name: "destination",
+                label: "Destination",
+                options: ["Uzbekistan", "Pakistan", "Afghanistan", "China"],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
 });

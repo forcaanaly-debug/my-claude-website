@@ -2,114 +2,17 @@ import type { Metadata } from 'next'
 import PageHero from '@/components/sections/PageHero'
 import GalleryGrid from '@/components/gallery/GalleryGrid'
 import CallToAction from '@/components/sections/CallToAction'
-import { getContent } from '@/lib/content'
+import { getContent, getGalleryImages } from '@/lib/content'
 
 export const metadata: Metadata = {
   title: 'Gallery',
   description: 'Images from across the Silk Road — Uzbekistan, Pakistan, Afghanistan, and China.',
 }
 
-const images = [
-  {
-    id: '1',
-    src: 'https://images.unsplash.com/photo-1653023102302-247f5f0fbdd1?w=1200&q=85',
-    alt: 'Registan Square at dusk, Samarkand',
-    destination: 'Uzbekistan',
-  },
-  {
-    id: '2',
-    src: 'https://images.unsplash.com/photo-1684230715200-40f32e068bf2?w=1200&q=85',
-    alt: 'Passu Cones rising above the Hunza River, Karakoram',
-    destination: 'Pakistan',
-  },
-  {
-    id: '3',
-    src: 'https://images.unsplash.com/photo-1643661100639-de5cdf7bcb80?w=1200&q=85',
-    alt: 'Snow-dusted mountains of the Hindu Kush, Afghanistan',
-    destination: 'Afghanistan',
-  },
-  {
-    id: '4',
-    src: 'https://images.unsplash.com/photo-1682686581362-796145f0e123?w=1200&q=85',
-    alt: 'Singing Sand Dunes at golden hour, Dunhuang',
-    destination: 'China',
-  },
-  {
-    id: '5',
-    src: 'https://images.unsplash.com/photo-1584802547882-3499a2bb917a?w=1200&q=85',
-    alt: 'Attabad Lake — turquoise waters in the Karakoram gorge',
-    destination: 'Pakistan',
-  },
-  {
-    id: '6',
-    src: 'https://images.unsplash.com/photo-1662492727591-b8441648d861?w=1200&q=85',
-    alt: 'Turquoise-tiled domes of Khiva, Uzbekistan',
-    destination: 'Uzbekistan',
-  },
-  {
-    id: '7',
-    src: 'https://images.unsplash.com/photo-1636997209370-e2042d01d5a5?w=1200&q=85',
-    alt: 'Hunza Valley at sunset — Rakaposhi in the distance',
-    destination: 'Pakistan',
-  },
-  {
-    id: '8',
-    src: 'https://images.unsplash.com/photo-1653152232504-3e1a9891dc46?w=1200&q=85',
-    alt: 'The Kalon Minaret, Bukhara — a beacon since the 12th century',
-    destination: 'Uzbekistan',
-  },
-  {
-    id: '9',
-    src: 'https://images.unsplash.com/photo-1533625767718-24d21580727a?w=1200&q=85',
-    alt: 'A doorway in the old city of Kashgar, Silk Road China',
-    destination: 'China',
-  },
-  {
-    id: '10',
-    src: 'https://images.unsplash.com/photo-1514558427911-8e293bebf18c?w=1200&q=85',
-    alt: 'Aerial view of the Hunza River cutting through the Karakoram',
-    destination: 'Pakistan',
-  },
-  {
-    id: '11',
-    src: 'https://images.unsplash.com/photo-1750440982726-d723eab666a5?w=1200&q=85',
-    alt: 'Winter snows on the mountains above Hunza',
-    destination: 'Pakistan',
-  },
-  {
-    id: '12',
-    src: 'https://images.unsplash.com/photo-1706982819560-2523c971299d?w=1200&q=85',
-    alt: 'The Hunza River valley from the Passu Cones viewpoint',
-    destination: 'Pakistan',
-  },
-  {
-    id: '13',
-    src: 'https://images.unsplash.com/photo-1742148534796-70b39f29bff6?w=1200&q=85',
-    alt: 'The Kalta Minor minaret, Khiva — abandoned before completion',
-    destination: 'Uzbekistan',
-  },
-  {
-    id: '14',
-    src: 'https://images.unsplash.com/photo-1729505622656-6da75375c3a2?w=1200&q=85',
-    alt: 'A river runs between mountain walls on the Karakoram Highway',
-    destination: 'Pakistan',
-  },
-  {
-    id: '15',
-    src: 'https://images.unsplash.com/photo-1453230806017-56d81464b6c5?w=1200&q=85',
-    alt: 'Surveying the peaks above Hunza Valley',
-    destination: 'Pakistan',
-  },
-  {
-    id: '16',
-    src: 'https://images.unsplash.com/photo-1549111998-cdc4a1d5367c?w=1200&q=85',
-    alt: 'A mosque under open sky, Central Asia',
-    destination: 'Uzbekistan',
-  },
-]
-
 export default function GalleryPage() {
   const hero = getContent().pages.gallery.hero
+  const rawImages = getGalleryImages()
+  const images = rawImages.map((img, i) => ({ id: String(i + 1), ...img }))
   return (
     <>
       <PageHero

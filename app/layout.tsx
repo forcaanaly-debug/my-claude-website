@@ -3,7 +3,6 @@ import { Cormorant_Garamond, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import LiveEditor from "@/components/admin/LiveEditor";
 import { getContent } from "@/lib/content";
 
 const cormorant = Cormorant_Garamond({
@@ -65,7 +64,6 @@ export default function RootLayout({
         <Navbar />
         <main style={{ flex: 1 }}>{children}</main>
         <Footer />
-        <LiveEditor />
       </body>
     </html>
   );
