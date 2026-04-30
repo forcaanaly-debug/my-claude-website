@@ -12,7 +12,7 @@ interface Props {
 }
 
 export async function generateStaticParams() {
-  return destinations.map(d => ({ slug: d.slug }))
+  return destinations.filter(d => d.slug !== 'pakistan').map(d => ({ slug: d.slug }))
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
